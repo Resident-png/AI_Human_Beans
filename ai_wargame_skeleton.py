@@ -313,6 +313,9 @@ class Game:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
+
+        src_row, src_col = coords.src.row, coords.src.col
+        dst_row, dst_col = coords.dst.row, coords.dst.col
             
         unit = self.get(coords.src)
         if unit is None or unit.player != self.next_player:
@@ -320,8 +323,16 @@ class Game:
             
         unit = self.get(coords.dst)
         if unit is not None and unit.player == self.next.player:
-            return (unit is None)
-        return True
+            return False
+
+    # Check if a player moves only one cell in the allowed direction
+        row_diff = abs(src_row - dst_row)
+        col_diff = abs(src_col - dst_col)
+        if (row_diff == 0 and col_diff == 1) or (row_diff == 1 and col_diff == 0):
+            return True
+
+        return False
+
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
