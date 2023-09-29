@@ -320,12 +320,46 @@ class Game:
         return (unit is None)
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
-        """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
-        if self.is_valid_move(coords):
-            self.set(coords.dst,self.get(coords.src))
-            self.set(coords.src,None)
-            return (True,"")
-        return (False,"invalid move")
+        """Validate and perform a move expressed as a CoordPair."""
+        src_unit = self.get(coords.src)
+        dst_unit = self.get(coords.dst)
+
+        # Check if the source and destination coordinates are valid
+        if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
+            return (False, "Invalid coordinates")
+
+        # Check if the source cell contains a unit
+        if src_unit is None:
+            return (False, "No unit at the source position")
+
+        # Check if the source unit belongs to the current player
+        if src_unit.player != self.next_player:
+            return (False, "Source unit does not belong to the current player")
+
+        # Check if the destination cell is empty or contains a friendly unit
+        if dst_unit is not None:
+            if dst_unit.player == src_unit.player:
+                # If it's a friendly unit, perform repair/healing
+                repair_amount = src_unit.repair_amount(dst_unit)
+                if repair_amount > 0:
+                    src_unit.mod_health(-repair_amount)
+                    return (True, f"Repaired {src_unit} by {repair_amount} health points")
+                else:
+                    return (False, "Cannot repair/heal the target unit")
+            else:
+                # If it's an enemy unit, perform an attack
+                damage_amount = src_unit.damage_amount(dst_unit)
+                src_unit.mod_health(-damage_amount)
+                dst_unit.mod_health(-damage_amount)
+                if dst_unit.is_alive():
+                    return (True, f"Attacked {dst_unit} with {src_unit} for {damage_amount} damage points")
+                else:
+                    return (True, f"Destroyed {dst_unit} with {src_unit} for {damage_amount} damage points")
+        else:
+            # If the destination cell is empty, perform movement
+            self.set(coords.dst, src_unit)
+            self.set(coords.src, None)
+            return (True, f"Moved {src_unit} from {coords.src} to {coords.dst}")
 
     def next_turn(self):
         """Transitions game to the next turn."""
