@@ -350,10 +350,6 @@ class Game:
         if not self.is_valid_move(coords):
             return (False, "Invalid coordinates")
 
-        # Check if the source cell contains a unit
-        if src_unit is None:
-            return (False, "No unit at the source position")
-
         # Check if the source unit belongs to the current player
         if src_unit.player != self.next_player:
             return (False, "Source unit does not belong to the current player")
