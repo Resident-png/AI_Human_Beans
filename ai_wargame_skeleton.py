@@ -317,22 +317,23 @@ class Game:
         src_row, src_col = coords.src.row, coords.src.col
         dst_row, dst_col = coords.dst.row, coords.dst.col
 
-        unit1 = self.get(coords.src)
-        if unit1 is None or unit1.player != self.next_player:
+        unit = self.get(coords.src)
+        if unit is None or unit.player != self.next_player:
             return False
         
-        unit2 = self.get(coords.dst)
-        if unit2 is not None and unit2.player == self.next_player:
+        unit = self.get(coords.dst)
+        if unit is not None and unit.player == self.next_player:
             return False
 
         # Check if a player moves only one cell in the allowed direction
         row_diff = abs(src_row - dst_row)
         col_diff = abs(src_col - dst_col)
 
-        if (unit1.type == UnitType.AI or unit1.type == UnitType.Firewall or unit1.type == UnitType.Program):
-            if unit1.player == Player.Attacker and ((src_row - dst_row) != -1 or (src_col - dst_col) != 1):
+        unit = self.get(coords.src)
+        if (unit.type == UnitType.AI or unit.type == UnitType.Firewall or unit.type == UnitType.Program):
+            if unit.player == Player.Attacker and ((src_row - dst_row) == -1 or (src_col - dst_col) == -1):
                 return False
-            if unit1.player == Player.Defender and ((src_row - dst_row) != 1 or (src_col - dst_col) != -1):
+            if (unit.player == Player.Defender and ((src_row - dst_row) == 1 or (src_col - dst_col) == 1)):
                 return False
         if (row_diff == 0 and col_diff == 1) or (row_diff == 1 and col_diff == 0):
             return True
