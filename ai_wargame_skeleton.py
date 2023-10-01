@@ -331,7 +331,8 @@ class Game:
         
         # Check that AIs, Firewalls and Programs cannot move if engaged in combat
         unit = self.get(coords.src)
-        if Coord.iter_adjacent(unit) and (unit.type == UnitType.AI or unit.type == UnitType.Firewall or unit.type == UnitType.Program):
+        unit2 = self.get(coords.dst)
+        if unit2 is None and Coord.iter_adjacent(unit) and (unit.type == UnitType.AI or unit.type == UnitType.Firewall or unit.type == UnitType.Program):
             return False
 
 
