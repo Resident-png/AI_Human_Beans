@@ -332,9 +332,14 @@ class Game:
         # Check that AIs, Firewalls and Programs cannot move if engaged in combat
         unit = self.get(coords.src)
         unit2 = self.get(coords.dst)
-        if unit2 is None and Coord.iter_adjacent(unit) and (unit.type == UnitType.AI or unit.type == UnitType.Firewall or unit.type == UnitType.Program):
-            return False
-
+        if unit2 is None and (unit.type == UnitType.AI or unit.type == UnitType.Firewall or unit.type == UnitType.Program):
+            for coord in Coord.iter_adjacent(coords.src):
+                unit3 = self.get(coord)
+                if unit3 is not None:
+                    if unit3.player != self.next_player:
+                        return False
+                else:
+                    continue
 
         # Check if a player moves only one cell in the allowed direction
         row_diff = abs(src_row - dst_row)
@@ -363,17 +368,12 @@ class Game:
         if dst_unit is not None:
             if(src_unit == dst_unit):
                 # If the target unit is itself, then it self desrtuct and causes damge to each surrounding unit (if there are any there) 
-                for temp_row in range(coords.src.row -1,coords.src.row +1):
-                    for temp_col in range(coords.src.col -1,coords.src.col +1):
-                        temp_unit = Coord(temp_row,temp_col)
-                        if self.is_valid_coord(temp_unit):
-                            unit_dst = self.get(temp_unit)
+                for coord in Coord.iter_range(coords.src, 1):
+                    if self.is_valid_coord(coord):
+                            unit_dst = self.get(coord)
                             if unit_dst is not None:
                                 unit_dst.mod_health(-2)
-                            else:
-                                continue
-                        else:
-                            continue
+                                self.remove_dead(coord)
                 src_unit.mod_health(-9)
                 self.remove_dead(coords.src)
                 return (True, f"Self-destructed {src_unit} and dealt 2 damage to surrounding units")
