@@ -641,10 +641,18 @@ def main():
 
     # create a new game
     game = Game(options=options)
+    s = input('Choose the maximum number of turns allowed for this game: ')
+    while(s is None):
+        print("Please input a max number of turns.")
+        s = input('Choose the maximum number of turns allowed for this game: ')
+    s = int(s)
+    Options.max_turns = s
+    print(f"The maximum amount of turns has been set to {Options.max_turns}.")
 
     # the main game loop
     while True:
         print()
+
         print(game)
         winner = game.has_winner()
         if winner is not None:
