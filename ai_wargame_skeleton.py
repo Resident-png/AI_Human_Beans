@@ -381,26 +381,22 @@ class Game:
                 # If it's a friendly unit, perform repair/healing
                 repair_amount = src_unit.repair_amount(dst_unit)
                 if repair_amount > 0:
-                    src_unit.mod_health(-repair_amount)
-                    return (True, f"Repaired {src_unit} by {repair_amount} health points")
+                    dst_unit.mod_health(repair_amount)
+                    return (True, f"Repaired {dst_unit} by {repair_amount} health points")
                 else:
                     return (False, "Cannot repair/heal the target unit")
             else:
                 # If it's an enemy unit, perform an attack
                 damage_amount = src_unit.damage_amount(dst_unit)
-                src_unit.mod_health(-damage_amount)
-                dst_unit.mod_health(-damage_amount)
+                self.mod_health(coords.src,-damage_amount)
+                self.mod_health(coords.dst,-damage_amount)
                 if dst_unit.is_alive() and src_unit.is_alive():
                     return (True, f"Attacked {dst_unit} with {src_unit} for {damage_amount} damage points")
                 elif dst_unit.is_alive() and not src_unit.is_alive():
-                    self.remove_dead(coords.src)
                     return (True, f"Attacked {dst_unit} with {src_unit} for {damage_amount} damage points and died in the process")
                 elif not dst_unit.is_alive() and src_unit.is_alive():
-                    self.remove_dead(coords.dst)
                     return (True, f"Destroyed {dst_unit} with {src_unit} for {damage_amount} damage points")
                 elif (not dst_unit.is_alive() and not src_unit.is_alive()):
-                    self.remove_dead(coords.dst)
-                    self.remove_dead(coords.src)
                     return (True, f"Destroyed {dst_unit} with {src_unit} for {damage_amount} damage points and died in the process")
         else:
             # If the destination cell is empty, perform movement
