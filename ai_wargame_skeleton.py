@@ -641,6 +641,15 @@ def main():
 
     # create a new game
     game = Game(options=options)
+
+    s = input('Choose the maximum time in seconds an AI should take per turn: ')
+    while(s is None):
+        print("Please input a max number of seconds.")
+        s = input('Choose the maximum time in seconds an AI should take per turn: ')
+    s = int(s)
+    Options.max_time = s
+    print(f"The maximum amount of seconds an AI should take to do their turns has been set to {Options.max_time}.")
+
     s = input('Choose the maximum number of turns allowed for this game: ')
     while(s is None):
         print("Please input a max number of turns.")
