@@ -313,7 +313,6 @@ class Game:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
-        
         src_row, src_col = coords.src.row, coords.src.col
         dst_row, dst_col = coords.dst.row, coords.dst.col
 
