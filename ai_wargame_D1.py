@@ -313,19 +313,95 @@ class Game:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
+        src_row, src_col = coords.src.row, coords.src.col
+        dst_row, dst_col = coords.dst.row, coords.dst.col
+
         unit = self.get(coords.src)
         if unit is None or unit.player != self.next_player:
             return False
-        unit = self.get(coords.dst)
-        return (unit is None)
+        
+        # Check that AIs, Firewalls and Programs can only move in the allowed directions
+        unit = self.get(coords.src)
+        if (unit.type == UnitType.AI or unit.type == UnitType.Firewall or unit.type == UnitType.Program):
+            if unit.player == Player.Attacker and ((src_row - dst_row) == -1 or (src_col - dst_col) == -1):
+                return False
+            if (unit.player == Player.Defender and ((src_row - dst_row) == 1 or (src_col - dst_col) == 1)):
+                return False
+        
+        # Check that AIs, Firewalls and Programs cannot move if engaged in combat
+        unit = self.get(coords.src)
+        unit2 = self.get(coords.dst)
+        if unit2 is None and (unit.type == UnitType.AI or unit.type == UnitType.Firewall or unit.type == UnitType.Program):
+            for coord in Coord.iter_adjacent(coords.src):
+                unit3 = self.get(coord)
+                if unit3 is not None:
+                    if unit3.player != self.next_player:
+                        return False
+                else:
+                    continue
+
+        # Check if a player moves only one cell in the allowed direction
+        row_diff = abs(src_row - dst_row)
+        col_diff = abs(src_col - dst_col)
+
+        if (row_diff == 0 and col_diff == 1) or (row_diff == 1 and col_diff == 0) or (row_diff == 0 and col_diff == 0):
+            return True
+
+        return False
+    
 
     def perform_move(self, coords : CoordPair) -> Tuple[bool,str]:
-        """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
-        if self.is_valid_move(coords):
-            self.set(coords.dst,self.get(coords.src))
-            self.set(coords.src,None)
-            return (True,"")
-        return (False,"invalid move")
+        """Validate and perform a move expressed as a CoordPair."""
+        src_unit = self.get(coords.src)
+        dst_unit = self.get(coords.dst)
+
+        # Check if the source and destination coordinates are valid
+        if not self.is_valid_move(coords):
+            return (False, "Invalid move")
+
+        # Check if the source unit belongs to the current player
+        if src_unit.player != self.next_player:
+            return (False, "Source unit does not belong to the current player")
+
+        # Check if the destination cell is empty or contains a friendly unit
+        if dst_unit is not None:
+            if(src_unit == dst_unit):
+                # If the target unit is itself, then it self desrtuct and causes damge to each surrounding unit (if there are any there) 
+                for coord in Coord.iter_range(coords.src, 1):
+                    if self.is_valid_coord(coord):
+                            unit_dst = self.get(coord)
+                            if unit_dst is not None:
+                                unit_dst.mod_health(-2)
+                                self.remove_dead(coord)
+                src_unit.mod_health(-9)
+                self.remove_dead(coords.src)
+                return (True, f"Self-destructed {src_unit} and dealt 2 damage to surrounding units")
+            elif dst_unit.player == src_unit.player:
+                # If it's a friendly unit, perform repair/healing
+                repair_amount = src_unit.repair_amount(dst_unit)
+                if repair_amount > 0:
+                    dst_unit.mod_health(repair_amount)
+                    return (True, f"Repaired {dst_unit} by {repair_amount} health points")
+                else:
+                    return (False, "Cannot repair/heal the target unit")
+            else:
+                # If it's an enemy unit, perform an attack
+                damage_amount = src_unit.damage_amount(dst_unit)
+                self.mod_health(coords.src,-damage_amount)
+                self.mod_health(coords.dst,-damage_amount)
+                if dst_unit.is_alive() and src_unit.is_alive():
+                    return (True, f"Attacked {dst_unit} with {src_unit} for {damage_amount} damage points")
+                elif dst_unit.is_alive() and not src_unit.is_alive():
+                    return (True, f"Attacked {dst_unit} with {src_unit} for {damage_amount} damage points and died in the process")
+                elif not dst_unit.is_alive() and src_unit.is_alive():
+                    return (True, f"Destroyed {dst_unit} with {src_unit} for {damage_amount} damage points")
+                elif (not dst_unit.is_alive() and not src_unit.is_alive()):
+                    return (True, f"Destroyed {dst_unit} with {src_unit} for {damage_amount} damage points and died in the process")
+        else:
+            # If the destination cell is empty, perform movement
+            self.set(coords.dst, src_unit)
+            self.set(coords.src, None)
+            return (True, f"Moved {src_unit} from {coords.src} to {coords.dst}")
 
     def next_turn(self):
         """Transitions game to the next turn."""
@@ -565,9 +641,26 @@ def main():
     # create a new game
     game = Game(options=options)
 
+    s = input('Choose the maximum time in seconds an AI should take per turn: ')
+    while(s is None):
+        print("Please input a max number of seconds.")
+        s = input('Choose the maximum time in seconds an AI should take per turn: ')
+    s = int(s)
+    Options.max_time = s
+    print(f"The maximum amount of seconds an AI should take to do their turns has been set to {Options.max_time}.")
+
+    s = input('Choose the maximum number of turns allowed for this game: ')
+    while(s is None):
+        print("Please input a max number of turns.")
+        s = input('Choose the maximum number of turns allowed for this game: ')
+    s = int(s)
+    Options.max_turns = s
+    print(f"The maximum amount of turns has been set to {Options.max_turns}.")
+
     # the main game loop
     while True:
         print()
+
         print(game)
         winner = game.has_winner()
         if winner is not None:
