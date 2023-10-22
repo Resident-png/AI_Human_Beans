@@ -386,17 +386,22 @@ class Game:
                     return (False, "Cannot repair/heal the target unit")
             else:
                 # If it's an enemy unit, perform an attack
-                damage_amount = src_unit.damage_amount(dst_unit)
-                self.mod_health(coords.src,-damage_amount)
-                self.mod_health(coords.dst,-damage_amount)
+                damage_attack = src_unit.damage_amount(dst_unit)
+                damage_received = dst_unit.damage_amount(src_unit)
+                self.mod_health(coords.src,-damage_received)
+                self.mod_health(coords.dst,-damage_attack)
+                # Attacked and stayed alive
                 if dst_unit.is_alive() and src_unit.is_alive():
-                    return (True, f"Attacked {dst_unit} with {src_unit} for {damage_amount} damage points")
+                    return (True, f"Attacked {dst_unit} with {src_unit} for {damage_attack} damage points")
+                # Attacked and died
                 elif dst_unit.is_alive() and not src_unit.is_alive():
-                    return (True, f"Attacked {dst_unit} with {src_unit} for {damage_amount} damage points and died in the process")
+                    return (True, f"Attacked {dst_unit} with {src_unit} for {damage_attack} damage points and died in the process")
+                # Killed enemy unit and stayed alive
                 elif not dst_unit.is_alive() and src_unit.is_alive():
-                    return (True, f"Destroyed {dst_unit} with {src_unit} for {damage_amount} damage points")
+                    return (True, f"Destroyed {dst_unit} with {src_unit} for {damage_attack} damage points")
+                # Killed enemy unit and died
                 elif (not dst_unit.is_alive() and not src_unit.is_alive()):
-                    return (True, f"Destroyed {dst_unit} with {src_unit} for {damage_amount} damage points and died in the process")
+                    return (True, f"Destroyed {dst_unit} with {src_unit} for {damage_attack} damage points and died in the process")
         else:
             # If the destination cell is empty, perform movement
             self.set(coords.dst, src_unit)
@@ -543,7 +548,6 @@ class Game:
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         print(f"Heuristic score: {score}")
-        print(f"Average recursive depth: {avg_depth:0.1f}")
         print(f"Evals per depth: ",end='')
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ",end='')
