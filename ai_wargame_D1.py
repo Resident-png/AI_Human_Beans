@@ -366,7 +366,7 @@ class Game:
         # Check if the destination cell is empty or contains a friendly unit
         if dst_unit is not None:
             if(src_unit == dst_unit):
-                # If the target unit is itself, then it self desrtuct and causes damge to each surrounding unit (if there are any there) 
+                # If the target is itself, then it self destructs and causes damge to each surrounding unit (if there are any there) 
                 for coord in Coord.iter_range(coords.src, 1):
                     if self.is_valid_coord(coord):
                             unit_dst = self.get(coord)
@@ -610,56 +610,42 @@ class Game:
 ##############################################################################################################
 
 def main():
-    # parse command line arguments
-    parser = argparse.ArgumentParser(
-        prog='ai_wargame',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--max_depth', type=int, help='maximum search depth')
-    parser.add_argument('--max_time', type=float, help='maximum search time')
-    parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
-    parser.add_argument('--broker', type=str, help='play via a game broker')
-    args = parser.parse_args()
+    aiTime = input('Choose the maximum time in seconds an AI should take per turn: ')
+
+    turns = input('Choose the maximum number of turns allowed for this game: ')
+
+    playMode = input('Choose the play mode for this game: ')
 
     # parse the game type
-    if args.game_type == "attacker":
+    if playMode.lower == "attacker":
         game_type = GameType.AttackerVsComp
-    elif args.game_type == "defender":
+    elif playMode.lower  == "defender":
         game_type = GameType.CompVsDefender
-    elif args.game_type == "manual":
+    elif playMode.lower  == "manual":
         game_type = GameType.AttackerVsDefender
     else:
         game_type = GameType.CompVsComp
-
+    
     # set up game options
     options = Options(game_type=game_type)
+    if turns is not None:
+        options.max_turn = turns
+    if aiTime is not None:
+        options.max_time = aiTime
+    
+    if playMode.lower != "manual":
+        miniOrAlpha = input('Choose the use of a minimax algorithm (enter False) or alpha-beta (enter True) algorithm for AI players: ')
+        depth = input('Choose the max depth the search algorithm should go: ')
+
+    options.alpha_beta = miniOrAlpha
 
     # override class defaults via command line options
-    if args.max_depth is not None:
-        options.max_depth = args.max_depth
-    if args.max_time is not None:
-        options.max_time = args.max_time
-    if args.broker is not None:
-        options.broker = args.broker
+    if depth is not None:
+        options.max_depth = depth
 
     # create a new game
     game = Game(options=options)
-
-    s = input('Choose the maximum time in seconds an AI should take per turn: ')
-    while(s is None):
-        print("Please input a max number of seconds.")
-        s = input('Choose the maximum time in seconds an AI should take per turn: ')
-    s = int(s)
-    Options.max_time = s
-    print(f"The maximum amount of seconds an AI should take to do their turns has been set to {Options.max_time}.")
-
-    s = input('Choose the maximum number of turns allowed for this game: ')
-    while(s is None):
-        print("Please input a max number of turns.")
-        s = input('Choose the maximum number of turns allowed for this game: ')
-    s = int(s)
-    Options.max_turns = s
-    print(f"The maximum amount of turns has been set to {Options.max_turns}.")
-
+    
     # the main game loop
     while True:
         print()
@@ -667,7 +653,7 @@ def main():
         print(game)
         winner = game.has_winner()
         if winner is not None:
-            print(f"{winner.name} wins!")
+            print(f"{winner.name} wins with " + Game.turns_played + "!")
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
