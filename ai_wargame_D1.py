@@ -633,7 +633,7 @@ def main():
     if aiTime is not None:
         options.max_time = aiTime
     
-    if playMode.lower != "manual":
+    if game_type != GameType.AttackerVsDefender:
         miniOrAlpha = input('Choose the use of a minimax algorithm (enter False) or alpha-beta (enter True) algorithm for AI players: ')
         depth = input('Choose the max depth the search algorithm should go: ')
 
