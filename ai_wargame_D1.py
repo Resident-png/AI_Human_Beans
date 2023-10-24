@@ -610,8 +610,6 @@ class Game:
 ##############################################################################################################
 
 def main():
-    aiTime = input('Choose the maximum time in seconds an AI should take per turn: ')
-
     turns = input('Choose the maximum number of turns allowed for this game: ')
 
     playMode = input('Choose the play mode for this game: ')
@@ -629,19 +627,19 @@ def main():
     # set up game options
     options = Options(game_type=game_type)
     if turns is not None:
-        options.max_turn = turns
-    if aiTime is not None:
-        options.max_time = aiTime
+        options.max_turns = turns
     
     if game_type != GameType.AttackerVsDefender:
+        aiTime = input('Choose the maximum time in seconds an AI should take per turn: ')
+        if aiTime is not None:
+            options.max_time = aiTime
         miniOrAlpha = input('Choose the use of a minimax algorithm (enter False) or alpha-beta (enter True) algorithm for AI players: ')
+        if miniOrAlpha is not None:
+            options.alpha_beta = miniOrAlpha
         depth = input('Choose the max depth the search algorithm should go: ')
-
-    options.alpha_beta = miniOrAlpha
-
-    # override class defaults via command line options
-    if depth is not None:
-        options.max_depth = depth
+        # override class defaults via command line options
+        if depth is not None:
+            options.max_depth = depth
 
     # create a new game
     game = Game(options=options)
