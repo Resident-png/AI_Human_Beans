@@ -226,6 +226,7 @@ class Options:
     max_turns : int | None = 100
     randomize_moves : bool = True
     broker : str | None = None
+    heuristic: int | None = 0
 
 ##############################################################################################################
 
@@ -541,10 +542,55 @@ class Game:
         else:
             return (0, None, 0)
 
+    def e_zero(self) -> int:
+        e0 = 0
+        for coord_unit in self.player_units(Player.Attacker):
+            if coord_unit[1].type != UnitType.AI:
+                e0 = e0 + 3
+            else:
+                e0 = e0 + 9999
+        
+        for coord_unit in self.player_units(Player.Defender):
+            if coord_unit[1].type != UnitType.AI:
+                e0 = e0 - 3
+            else:
+                e0 = e0 - 9999
+        return e0
+    
+    def e_one(self) -> int:
+        e0 = 0
+        for coord_unit in self.player_units(Player.Attacker):
+            if coord_unit[1].type == (UnitType.Virus | UnitType.Tech):
+                e0 = e0 + 10*coord_unit[1].health
+            elif coord_unit[1].type == (UnitType.Program):
+                e0 = e0 + 5*coord_unit[1].health
+            elif coord_unit[1].type == (UnitType.Firewall):
+                e0 = e0 + 2*coord_unit[1].health
+            elif coord_unit[1].type == (UnitType.AI):
+                e0 = e0 + 5000*coord_unit[1].health
+        
+        for coord_unit in self.player_units(Player.Defender):
+            if coord_unit[1].type == (UnitType.Virus | UnitType.Tech):
+                e0 = e0 - 10*coord_unit[1].health
+            elif coord_unit[1].type == (UnitType.Program):
+                e0 = e0 - 5*coord_unit[1].health
+            elif coord_unit[1].type == (UnitType.Firewall):
+                e0 = e0 - 2*coord_unit[1].health
+            elif coord_unit[1].type == (UnitType.AI):
+                e0 = e0 - 5000*coord_unit[1].health
+        return e0
+
+    def minimax() -> :
+    
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
         start_time = datetime.now()
-        (score, move, avg_depth) = self.random_move()
+
+        if Options.alpha_beta == False:
+            (score, move) = self.minimax()
+        elif Options.alpha_beta == True:
+            (score, move) = self.alpha_beta()
+
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         print(f"Heuristic score: {score}")
@@ -640,6 +686,9 @@ def main():
         # override class defaults via command line options
         if depth is not None:
             options.max_depth = depth
+        e = input('Choose the heuristic the algorithm should use (0, 1 or 2): ')
+        if e is not None:
+            options.heuristic = e
 
     # create a new game
     game = Game(options=options)
