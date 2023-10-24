@@ -244,7 +244,7 @@ class Game:
     board: list[list[Unit | None]] = field(default_factory=list)
     next_player: Player = Player.Attacker
     turns_played : int = 0
-    options: Options = field(default_factory=Options)
+    options: Options | Options= field(default_factory=Options)
     stats: Stats = field(default_factory=Stats)
     _attacker_has_ai : bool = True
     _defender_has_ai : bool = True
@@ -580,17 +580,51 @@ class Game:
                 e0 = e0 - 5000*coord_unit[1].health
         return e0
 
-    def minimax() -> :
+    def minimax(game, depth, time, previousMove) -> Tuple[int, CoordPair | None]:
+        if game.has_winner() == Player.Attacker:
+            return (MAX_HEURISTIC_SCORE, previousMove)
+        elif game.has_winner() == Player.Defender:
+            return (MIN_HEURISTIC_SCORE, previousMove)
+        elif depth == game.options.max_depth | ((datetime.now() - time).total_seconds() >= 0.8*game.options.max_time):
+            if game.options.heuristic == 0:
+                return (game.e_zero(), previousMove)
+            elif game.options.heuristic == 1:
+                return (game.e_one(), previousMove)
+        else:
+            if game.next_player == Player.Attacker:
+                bestmove = previousMove
+                best = [MIN_HEURISTIC_SCORE, bestmove]
+                for move in game.move_candidates():
+                    game.perform_move(move)
+                    gamecopy = game.clone()
+                    (score, suggested) = game.minimax(gamecopy, depth +1, time, move)
+                    if (score >= best[0]):
+                        best[0] = score
+                        best[1] = suggested
+                return (best[0], best[1])
+            elif game.next_player == Player.Defender:
+                bestmove = previousMove
+                best = [MAX_HEURISTIC_SCORE, bestmove]
+                for move in game.move_candidates():
+                    game.perform_move(move)
+                    gamecopy = game.clone()
+                    (score, suggested) = game.minimax(gamecopy, depth +1, time, move)
+                    if (best[0] >= score):
+                        best[0] = score
+                        best[1] = suggested
+                return (best[0], best[1])
+
     
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
         start_time = datetime.now()
 
-        if Options.alpha_beta == False:
-            (score, move) = self.minimax()
-        elif Options.alpha_beta == True:
-            (score, move) = self.alpha_beta()
-
+        if self.options.alpha_beta == False:
+            print("hello from the other side")
+            (score, suggested) = Game.minimax(self.clone, 1, start_time, None)
+        """elif self.options.alpha_beta == True:
+            (score, suggested) = self.alpha_beta()"""
+        
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         print(f"Heuristic score: {score}")
@@ -602,7 +636,7 @@ class Game:
         if self.stats.total_seconds > 0:
             print(f"Eval perf.: {total_evals/self.stats.total_seconds/1000:0.1f}k/s")
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
-        return move
+        return suggested
 
     def post_move_to_broker(self, move: CoordPair):
         """Send a move to the game broker."""
@@ -661,37 +695,39 @@ def main():
     playMode = input('Choose the play mode for this game: ')
 
     # parse the game type
-    if playMode.lower == "attacker":
-        game_type = GameType.AttackerVsComp
-    elif playMode.lower  == "defender":
-        game_type = GameType.CompVsDefender
-    elif playMode.lower  == "manual":
-        game_type = GameType.AttackerVsDefender
+    if playMode == "attacker":
+        mode = GameType.AttackerVsComp
+    elif playMode  == "defender":
+        mode = GameType.CompVsDefender
+    elif playMode  == "manual":
+        mode = GameType.AttackerVsDefender
     else:
-        game_type = GameType.CompVsComp
+        mode = GameType.CompVsComp
     
     # set up game options
-    options = Options(game_type=game_type)
+    options = Options()
+    options.game_type = mode
     if turns is not None:
-        options.max_turns = turns
+        options.max_turns = int(turns)
     
-    if game_type != GameType.AttackerVsDefender:
+    if mode != GameType.AttackerVsDefender:
         aiTime = input('Choose the maximum time in seconds an AI should take per turn: ')
         if aiTime is not None:
-            options.max_time = aiTime
+            options.max_time = int(aiTime)
         miniOrAlpha = input('Choose the use of a minimax algorithm (enter False) or alpha-beta (enter True) algorithm for AI players: ')
         if miniOrAlpha is not None:
-            options.alpha_beta = miniOrAlpha
+            options.alpha_beta = eval(miniOrAlpha)
         depth = input('Choose the max depth the search algorithm should go: ')
         # override class defaults via command line options
         if depth is not None:
-            options.max_depth = depth
+            options.max_depth = int(depth)
         e = input('Choose the heuristic the algorithm should use (0, 1 or 2): ')
         if e is not None:
-            options.heuristic = e
+            options.heuristic = int(e)
 
     # create a new game
     game = Game(options=options)
+    print(game.options)
     
     # the main game loop
     while True:
