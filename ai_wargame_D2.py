@@ -244,7 +244,7 @@ class Game:
     board: list[list[Unit | None]] = field(default_factory=list)
     next_player: Player = Player.Attacker
     turns_played : int = 0
-    options: Options | Options= field(default_factory=Options)
+    options: Options= field(default_factory=Options)
     stats: Stats = field(default_factory=Stats)
     _attacker_has_ai : bool = True
     _defender_has_ai : bool = True
@@ -541,16 +541,16 @@ class Game:
             return (0, move_candidates[0], 1)
         else:
             return (0, None, 0)
-
+#
     def e_zero(self) -> int:
         e0 = 0
-        for coord_unit in self.player_units(Player.Attacker):
+        for coord_unit in board.player_units(Player.Attacker):
             if coord_unit[1].type != UnitType.AI:
                 e0 = e0 + 3
             else:
                 e0 = e0 + 9999
         
-        for coord_unit in self.player_units(Player.Defender):
+        for coord_unit in board.player_units(Player.Defender):
             if coord_unit[1].type != UnitType.AI:
                 e0 = e0 - 3
             else:
@@ -559,7 +559,7 @@ class Game:
     
     def e_one(self) -> int:
         e0 = 0
-        for coord_unit in self.player_units(Player.Attacker):
+        for coord_unit in board.player_units(Player.Attacker):
             if coord_unit[1].type == (UnitType.Virus | UnitType.Tech):
                 e0 = e0 + 10*coord_unit[1].health
             elif coord_unit[1].type == (UnitType.Program):
@@ -569,7 +569,7 @@ class Game:
             elif coord_unit[1].type == (UnitType.AI):
                 e0 = e0 + 5000*coord_unit[1].health
         
-        for coord_unit in self.player_units(Player.Defender):
+        for coord_unit in board.player_units(Player.Defender):
             if coord_unit[1].type == (UnitType.Virus | UnitType.Tech):
                 e0 = e0 - 10*coord_unit[1].health
             elif coord_unit[1].type == (UnitType.Program):
@@ -580,48 +580,72 @@ class Game:
                 e0 = e0 - 5000*coord_unit[1].health
         return e0
 
-    def minimax(game, depth, time, previousMove) -> Tuple[int, CoordPair | None]:
-        if game.has_winner() == Player.Attacker:
-            return (MAX_HEURISTIC_SCORE, previousMove)
-        elif game.has_winner() == Player.Defender:
-            return (MIN_HEURISTIC_SCORE, previousMove)
-        elif depth == game.options.max_depth | ((datetime.now() - time).total_seconds() >= 0.8*game.options.max_time):
-            if game.options.heuristic == 0:
-                return (game.e_zero(), previousMove)
-            elif game.options.heuristic == 1:
-                return (game.e_one(), previousMove)
+    def minimax(self, depth, time, previousMove) -> Tuple[int, CoordPair]:
+        # If the time taken to reach this node has exceeded 80% of the max time an AI should take to make their move,
+        # go back up the tree. Also, we have reached the max depth of the Tree, evaluate the leaf and go back up the Tree.
+        if depth == self.options.max_depth | ((datetime.now() - time).total_seconds() >= 0.8*self.options.max_depth):
+            if self.options.heuristic == 0:
+                return (self.e_zero(), previousMove)
+            elif self.options.heuristic == 1:
+                return (self.e_one(), previousMove)
+        # Checking if the Attacker still has their AI, if not retunr the max heuristics value, as this is the desirable outcome
+        elif self.next_player == Player.Attacker:
+            for (_, unit) in self.player_units(self.next_player):
+                if unit == UnitType.AI:
+                    break
+                elif unit != UnitType.AI:
+                    continue
+                return (MAX_HEURISTIC_SCORE, previousMove)
+        # Checking if the Defender still has their AI, if not retunr the max heuristics value, as this is the desirable outcome
+        elif self.next_player == Player.Defender:
+            for (_, unit) in self.player_units(self.next_player):
+                if unit == UnitType.AI:
+                    break
+                elif unit != UnitType.AI:
+                    continue
+                return (MIN_HEURISTIC_SCORE, previousMove)
+        # Otherwise, continue going down th tree
         else:
-            if game.next_player == Player.Attacker:
+            if self.next_player == Player.Attacker:
                 bestmove = previousMove
                 best = [MIN_HEURISTIC_SCORE, bestmove]
-                for move in game.move_candidates():
-                    game.perform_move(move)
-                    gamecopy = game.clone()
-                    (score, suggested) = game.minimax(gamecopy, depth +1, time, move)
+                for move in self.move_candidates():
+                    gamecopy = self.clone()
+                    gamecopy.perform_move(move)
+                    (score, _) = gamecopy.minimax(depth +1, time, move)
                     if (score >= best[0]):
                         best[0] = score
-                        best[1] = suggested
-                return (best[0], best[1])
-            elif game.next_player == Player.Defender:
+                        best[1] = move
+                if self.options.heuristic == 0:
+                    bestMoveHeuristic = (self.e_zero(), previousMove)
+                elif self.options.heuristic == 1:
+                    bestMoveHeuristic = (self.e_one(), previousMove)
+                moveTodo = best[1]
+                return (bestMoveHeuristic, moveTodo)
+            elif self.next_player == Player.Defender:
                 bestmove = previousMove
                 best = [MAX_HEURISTIC_SCORE, bestmove]
-                for move in game.move_candidates():
-                    game.perform_move(move)
-                    gamecopy = game.clone()
-                    (score, suggested) = game.minimax(gamecopy, depth +1, time, move)
+                for move in self.move_candidates():
+                    gamecopy = self.clone()
+                    gamecopy.perform_move(move)
+                    (score, _) = gamecopy.minimax(depth +1, time, move)
                     if (best[0] >= score):
                         best[0] = score
-                        best[1] = suggested
-                return (best[0], best[1])
-
+                        best[1] = move
+                if self.options.heuristic == 0:
+                    bestMoveHeuristic = (self.e_zero(), previousMove)
+                elif self.options.heuristic == 1:
+                    bestMoveHeuristic = (self.e_one(), previousMove)
+                moveTodo = best[1]
+                return (bestMoveHeuristic, moveTodo)
+#
     
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
         start_time = datetime.now()
 
         if self.options.alpha_beta == False:
-            print("hello from the other side")
-            (score, suggested) = Game.minimax(self.clone, 1, start_time, None)
+            (score, suggested) = self.minimax(1, start_time, None)
         """elif self.options.alpha_beta == True:
             (score, suggested) = self.alpha_beta()"""
         
