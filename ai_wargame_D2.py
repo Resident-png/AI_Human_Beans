@@ -606,6 +606,7 @@ class Game:
                 return (MIN_HEURISTIC_SCORE, previousMove)
         # Otherwise, continue going down th tree
         else:
+            # Evaluate moves base on if the player is the Attacker and takes the move with the max heuristic
             if self.next_player == Player.Attacker:
                 bestmove = previousMove
                 best = [MIN_HEURISTIC_SCORE, bestmove]
@@ -622,6 +623,7 @@ class Game:
                     bestMoveHeuristic = (self.e_one(), previousMove)
                 moveTodo = best[1]
                 return (bestMoveHeuristic, moveTodo)
+            # Evaluate moves base on if the player is the Defender and takes the move with the max heuristic
             elif self.next_player == Player.Defender:
                 bestmove = previousMove
                 best = [MAX_HEURISTIC_SCORE, bestmove]
