@@ -7,6 +7,8 @@ Teammates:
 
 Team Leader: Titouan Sablé
 
+To see the code of D1 an D2, there are branches called D1 and D2
+
 To run the program, just import it into any IDE that accepts Python code.
 For the inputs:
 * The maximum amount of turns require an actual number input, otherwise it will not work.
